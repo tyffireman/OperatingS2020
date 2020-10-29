@@ -160,10 +160,10 @@ public class Communicator {
         KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
         KThread listener2 = new KThread(new Listener(3,comm)).setName("Listener2");
         speaker1.fork();
-        speaker2.fork();
-        ThreadedKernel.alarm.waitUntil(1000000);
-        listener1.fork();
         listener2.fork();
+        ThreadedKernel.alarm.waitUntil(1000000);
+        speaker2.fork();
+        listener1.fork();
         ThreadedKernel.alarm.waitUntil(10000000);
     }
 
@@ -176,31 +176,17 @@ public class Communicator {
         KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
         KThread listener2 = new KThread(new Listener(3,comm)).setName("Listener2");
         listener1.fork();
-        listener2.fork();
+        speaker2.fork();
         ThreadedKernel.alarm.waitUntil(1000000);
+        listener2.fork();
         speaker1.fork();
-        speaker2.fork();
         ThreadedKernel.alarm.waitUntil(10000000);
     }
 
-    private static void test3(){
-        //Listener joins speaker
-        System.out.println("----- Communicator TEST3 -----");
-        Communicator comm = new Communicator();
-
-        KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
-        KThread speaker1 = new KThread(new Speaker(0,comm,123,listener1)).setName("Speaker1");
-        KThread speaker2 = new KThread(new Speaker(1,comm,456)).setName("Speaker2");
-        speaker1.fork();
-        listener1.fork();
-        speaker2.fork();
-        ThreadedKernel.alarm.waitUntil(10000000);
-    }
 
     public static void selfTest(){
         test1();
         test2();
-        test3();
     }
 
     /* for testing use */

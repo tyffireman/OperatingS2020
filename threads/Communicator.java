@@ -2,7 +2,6 @@ package nachos.threads;
 
 import nachos.machine.*;
 import java.util.LinkedList;
-import java.util.TreeMap;
 
 /**
  * A <i>communicator</i> allows threads to synchronously exchange 32-bit
@@ -17,13 +16,13 @@ public class Communicator {
      */
     public Communicator() {
         conditionLock = new Lock();
-        speakQueue = new Condition(conditionLock);
-        listenQueue = new Condition(conditionLock);
-        speaking = new Condition(conditionLock);
-        listening = new Condition(conditionLock);
+        speakQueue = new Condition2(conditionLock);
+        listenQueue = new Condition2(conditionLock);
+        speaking = new Condition2(conditionLock);
+        listening = new Condition2(conditionLock);
         countSpeaker = 0;
         countListener = 0;
-        notTransfer = true;
+        nottransfer = true;
     }
 
     /**
@@ -38,19 +37,19 @@ public class Communicator {
      */
     public void speak(int word) {
         conditionLock.acquire();
+        // words.add(word);
         if (countListener == 0) {
             countSpeaker = countSpeaker + 1;
             speakQueue.sleep();
             countSpeaker = countSpeaker - 1;
-        }
-        else {
+        } else {
             listenQueue.wake();
         }
-        while (!notTransfer) {
+        while (!nottransfer) {
             speaking.sleep();
         }
         this.word = word;
-        notTransfer = false;
+        nottransfer = true;
         listening.wake();
         conditionLock.release();
     }
@@ -60,37 +59,37 @@ public class Communicator {
      * the <i>word</i> that thread passed to <tt>speak()</tt>.
      *
      * @return	the integer transferred.
-     */    
+     */
     public int listen() {
-        int receive;
+        int heard;
         conditionLock.acquire();
         if (countSpeaker == 0) {
             countListener = countListener + 1;
             listenQueue.sleep();
             countListener = countListener - 1;
-        }
-        else {
+        } else {
             speakQueue.wake();
         }
-        while (notTransfer) {
+        while (nottransfer) {
             listening.sleep();
         }
-        receive = word;
-        notTransfer = true;
+        heard = word;
+        nottransfer = true;
         speaking.wake();
         conditionLock.release();
-        return receive;
+        return heard;
     }
 
     private Lock conditionLock;
-    private Condition speakQueue;
-    private Condition listenQueue;
-    private Condition speaking;
-    private Condition listening;
+    // private int word;
+    private Condition2 speakQueue;
+    private Condition2 listenQueue;
+    private Condition2 speaking;
+    private Condition2 listening;
     private int countSpeaker;
     private int countListener;
     private int word;
-    private boolean notTransfer;
+    private boolean nottransfer;
 
     /**
      * Self Test
@@ -153,10 +152,10 @@ public class Communicator {
 
     private static void test1(){
         //Speaker first
-        System.out.println("----- Communicator TEST1  ----");
+        System.out.println("----- Communicator TEST1 -----");
         Communicator comm = new Communicator();
-        KThread speaker1 = new KThread(new Speaker(0,comm,123)).setName("Speaker1");
-        KThread speaker2 = new KThread(new Speaker(1,comm,456)).setName("Speaker2");
+        KThread speaker1 = new KThread(new Speaker(0,comm,314)).setName("Speaker1");
+        KThread speaker2 = new KThread(new Speaker(1,comm,271)).setName("Speaker2");
         KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
         KThread listener2 = new KThread(new Listener(3,comm)).setName("Listener2");
         speaker1.fork();
@@ -171,23 +170,26 @@ public class Communicator {
         //Listener first
         System.out.println("----- Communicator TEST2 -----");
         Communicator comm = new Communicator();
-        KThread speaker1 = new KThread(new Speaker(0,comm,123)).setName("Speaker1");
-        KThread speaker2 = new KThread(new Speaker(1,comm,456)).setName("Speaker2");
-        KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
-        KThread listener2 = new KThread(new Listener(3,comm)).setName("Listener2");
+        KThread speaker1 = new KThread(new Speaker(0,comm,314)).setName("Speaker1");
+        KThread speaker2 = new KThread(new Speaker(1,comm,271)).setName("Speaker2");
+        KThread speaker3 = new KThread(new Speaker(2,comm,729)).setName("Speaker3");
+        KThread listener1 = new KThread(new Listener(3,comm)).setName("Listener1");
+        KThread listener2 = new KThread(new Listener(4,comm)).setName("Listener2");
+        KThread listener3 = new KThread(new Listener(5,comm)).setName("Listener3");
         listener1.fork();
-        speaker2.fork();
-        ThreadedKernel.alarm.waitUntil(1000000);
         listener2.fork();
+        ThreadedKernel.alarm.waitUntil(1000000);
         speaker1.fork();
+        listener3.fork();
+        speaker2.fork();
+        speaker3.fork();
         ThreadedKernel.alarm.waitUntil(10000000);
     }
-
 
     public static void selfTest(){
         test1();
         test2();
     }
 
-    /* for testing use */
+
 }

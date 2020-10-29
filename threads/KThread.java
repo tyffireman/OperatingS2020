@@ -380,39 +380,86 @@ public class KThread {
     /**
      * Prepare this thread to give up the processor. Kernel threads do not
      * need to do anything here.
-     */
-    protected void saveState() {
-	Lib.assertTrue(Machine.interrupt().disabled());
-	Lib.assertTrue(this == currentThread);
-    }
-
-    private static class PingTest implements Runnable {
-	PingTest(int which) {
-	    this.which = which;
-	}
-	
-	public void run() {
-	    for (int i=0; i<5; i++) {
-		System.out.println("*** thread " + which + " looped "
-				   + i + " times");
-		currentThread.yield();
-	    }
-	}
-
-	private int which;
-    }
 
     /**
      * Tests whether this module is working.
      */
-    public static void selfTest() {
-	Lib.debug(dbgThread, "Enter KThread.selfTest");
-	
-	new KThread(new PingTest(1)).setName("forked thread").fork();
-	new PingTest(0).run();
-    }
+	protected void saveState() {
+		Lib.assertTrue(Machine.interrupt().disabled());
+		Lib.assertTrue(this == currentThread);
+	}
 
-    private static final char dbgThread = 't';
+	private static class PingTest implements Runnable {
+		PingTest(int which) {
+			this.which = which;
+		}
+
+		public void run() {
+			for (int i=0; i<5; i++) {
+				System.out.println("*** thread " + which + " looped "
+						+ i + " times");
+				currentThread.yield();
+			}
+		}
+
+		private int which;
+	}
+
+	public static class Joining implements Runnable {
+		Joining(KThread to) {
+			this.to = to;
+		}
+
+		public void run() {
+			System.out.println("New thread");
+			to.fork();
+			currentThread.yield();
+			to.join();
+			System.out.println("Finish");
+		}
+
+		private KThread to;
+	}
+
+	public static class AThread implements Runnable {
+		AThread(int n) {
+			waitTime = n * 100;
+		}
+
+		public void run() {
+			System.out.println(KThread.currentThread().toString() + "Sleeping at" + Machine.timer().getTime() + "for" + waitTime);
+			ThreadedKernel.alarm.waitUntil(waitTime);
+			System.out.println(KThread.currentThread().toString() + "wakes at" + Machine.timer().getTime());
+		}
+
+		long waitTime;
+	}
+
+	/**
+	 * Tests whether this module is working.
+	 */
+	public static void selfTest() {
+		Lib.debug(dbgThread, "KThread.selfTest");
+
+		// new KThread(new PingTest(1)).setName("forked thread").fork();
+		// new PingTest(0).run();
+
+		KThread join1 = new KThread(new PingTest(1));
+		KThread join2 = new KThread(new Joining(join1));
+		KThread join3 = new KThread(new Joining(join1));  //won't join
+
+		join2.fork();
+		join3.fork();
+		join2.join();
+
+		// for(int i = 0; i < 5; i++) {
+		//     System.out.println("Creating thread" + i);
+		//     new KThread(new AlarmThread(2)).setName(i+"").fork();
+		// }
+		// ThreadedKernel.alarm.waitUntil(10000000);
+	}
+
+	private static final char dbgThread = 't';
 
     /**
      * Additional state used by schedulers.

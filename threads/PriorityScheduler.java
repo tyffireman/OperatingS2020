@@ -516,106 +516,8 @@ public class PriorityScheduler extends Scheduler {
 
 
     private static void test2(){
-        //Test2: Test priority donation and transitivity
-        System.out.println("----- PriorityQueue TEST2 -----");
-        boolean intStatus = Machine.interrupt().disable();
-
-        PriorityScheduler scheduler = new PriorityScheduler();
-        ThreadQueue Q1 = scheduler.newThreadQueue(true);
-        ThreadQueue Q2 = scheduler.newThreadQueue(true);
-        KThread t1 = new KThread(new Tester(1)).setName("thread 1");
-        KThread t2 = new KThread(new Tester(2)).setName("thread 2");
-        KThread t3 = new KThread(new Tester(3)).setName("thread 3");
-        KThread t4 = new KThread(new Tester(4)).setName("thread 4");
-        KThread t5 = new KThread(new Tester(5)).setName("thread 5");
-        scheduler.setPriority(t1,1);
-        scheduler.setPriority(t2,2);
-        scheduler.setPriority(t3,4);
-        scheduler.setPriority(t4,6);
-        scheduler.setPriority(t5,7);
-
-        Q1.acquire(t1);
-        Q1.print();
-        Q2.acquire(t2);
-        Q2.print();
-        Q2.waitForAccess(t1);
-        Q2.print();
-        Q1.waitForAccess(t4);
-        Q1.print();
-        Q2.print();
-        Q1.waitForAccess(t5);
-        Q1.print();
-        Q2.print();
-        Q2.waitForAccess(t3);
-        Q2.print();
-        System.out.println(Q2.nextThread());
-        Q2.print();
-
-
-        Machine.interrupt().restore(intStatus);
-    }
-
-    private static void test3(){
-        //Test3: Test setPriority()
-        System.out.println("----- PriorityQueue TEST3 -----");
-        boolean intStatus = Machine.interrupt().disable();
-
-        PriorityScheduler scheduler = new PriorityScheduler();
-        ThreadQueue Q1 = scheduler.newThreadQueue(true);
-        ThreadQueue Q2 = scheduler.newThreadQueue(true);
-        ThreadQueue Q3 = scheduler.newThreadQueue(true);
-        KThread t1 = new KThread(new Tester(1)).setName("thread 1");
-        KThread t2 = new KThread(new Tester(2)).setName("thread 2");
-        KThread t3 = new KThread(new Tester(3)).setName("thread 3");
-        KThread t4 = new KThread(new Tester(4)).setName("thread 4");
-        KThread t5 = new KThread(new Tester(5)).setName("thread 5");
-        scheduler.setPriority(t1,1);
-        scheduler.setPriority(t2,2);
-        scheduler.setPriority(t3,3);
-        scheduler.setPriority(t4,5);
-        scheduler.setPriority(t5,1);
-
-        Q1.acquire(t1);
-        Q2.acquire(t2);
-        Q3.acquire(t3);
-        Q1.print();
-        Q2.print();
-        Q3.print();
-        Q3.waitForAccess(t2);
-        Q3.print();
-        scheduler.setPriority(t2,4);
-        Q3.print();
-        Q2.waitForAccess(t1);
-        Q1.print();
-        Q2.print();
-        Q3.print();
-        scheduler.setPriority(t1,6);
-        Q1.print();
-        Q2.print();
-        Q3.print();
-        Q1.waitForAccess(t4);
-        Q1.print();
-        Q2.print();
-        Q3.print();
-        scheduler.setPriority(t1,3);
-        Q1.print();
-        Q2.print();
-        Q3.print();
-        Q1.nextThread();
-        Q1.print();
-        Q2.print();
-        Q3.print();
-        Q2.nextThread();
-        Q1.print();
-        Q2.print();
-        Q3.print();
-
-        Machine.interrupt().restore(intStatus);
-    }
-
-    private static void test4(){
         // Test many-to-one donation
-        System.out.println("----- PriorityQueue TEST4 -----");
+        System.out.println("----- PriorityQueue TEST2 -----");
         boolean intStatus = Machine.interrupt().disable();
 
         PriorityScheduler scheduler = new PriorityScheduler();
@@ -663,51 +565,10 @@ public class PriorityScheduler extends Scheduler {
         Machine.interrupt().restore(intStatus);
     }
 
-    private static void test5(){
-        //Test5: Test behavior when priority donation is off
-        System.out.println("----- PriorityQueue TEST5 -----");
-        boolean intStatus = Machine.interrupt().disable();
 
-        PriorityScheduler scheduler = new PriorityScheduler();
-        ThreadQueue Q1 = scheduler.newThreadQueue(false);
-        ThreadQueue Q2 = scheduler.newThreadQueue(false);
-        KThread t1 = new KThread(new Tester(1)).setName("thread 1");
-        KThread t2 = new KThread(new Tester(2)).setName("thread 2");
-        KThread t3 = new KThread(new Tester(3)).setName("thread 3");
-        KThread t4 = new KThread(new Tester(4)).setName("thread 4");
-        KThread t5 = new KThread(new Tester(5)).setName("thread 5");
-        scheduler.setPriority(t1,1);
-        scheduler.setPriority(t2,2);
-        scheduler.setPriority(t3,4);
-        scheduler.setPriority(t4,6);
-        scheduler.setPriority(t5,7);
-
-        Q1.acquire(t1);
-        Q1.print();
-        Q2.acquire(t2);
-        Q2.print();
-        Q2.waitForAccess(t1);
-        Q2.print();
-        Q1.waitForAccess(t4);
-        Q1.print();
-        Q2.print();
-        Q1.waitForAccess(t5);
-        Q1.print();
-        Q2.print();
-        Q2.waitForAccess(t3);
-        Q2.print();
-        System.out.println(Q2.nextThread());
-        Q2.print();
-
-
-        Machine.interrupt().restore(intStatus);
-    }
 
     public static void selfTest(){
         test1();
         test2();
-        test3();
-        test4();
-        test5();
     }
 }

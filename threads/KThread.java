@@ -57,7 +57,8 @@ public class KThread {
 
 	    createIdleThread();
 	}
-		join_ = new Semaphore(0);
+        
+        joined = new Semaphore(0);
     }
 
     /**
@@ -115,8 +116,6 @@ public class KThread {
 	return (name + " (#" + id + ")");
     }
 
-    public Semaphore join_;
-
     /**
      * Deterministically and consistently compare this thread to another
      * thread.
@@ -161,7 +160,7 @@ public class KThread {
     private void runThread() {
 	begin();
 	target.run();
-		join_.V();
+        joined.V();
 	finish();
     }
 
@@ -281,7 +280,8 @@ public class KThread {
 
 	Lib.assertTrue(this != currentThread);
 
-	join_.P();
+        joined.P();
+
     }
 
     /**
@@ -297,7 +297,7 @@ public class KThread {
 	Lib.assertTrue(idleThread == null);
 	
 	idleThread = new KThread(new Runnable() {
-	    public void run() { while (true) Thread.yield(); }
+	    public void run() { while (true) yield(); }
 	});
 	idleThread.setName("idle");
 
@@ -380,86 +380,80 @@ public class KThread {
     /**
      * Prepare this thread to give up the processor. Kernel threads do not
      * need to do anything here.
+     */
+    protected void saveState() {
+	Lib.assertTrue(Machine.interrupt().disabled());
+	Lib.assertTrue(this == currentThread);
+    }
+
+    private static class PingTest implements Runnable {
+	PingTest(int which) {
+	    this.which = which;
+	}
+	
+	public void run() {
+	    for (int i=0; i<5; i++) {
+		System.out.println("*** thread " + which + " looped "
+				   + i + " times");
+		currentThread.yield();
+	    }
+	}
+
+	private int which;
+    }
+
+    public static class Joiner implements Runnable {
+        Joiner(KThread toJoin) {
+            this.toJoin = toJoin;
+        }
+
+        public void run() {
+            System.out.println("Joiner forking new thread");
+            toJoin.fork();
+            currentThread.yield();
+            toJoin.join();
+            System.out.println("Joiner finish");
+        }
+
+        private KThread toJoin;
+    }
+
+    public static class AlarmThread implements Runnable {
+        AlarmThread(int n) {
+            waitTime = n * 10000;
+        }
+
+        public void run() {
+            System.out.println(KThread.currentThread().toString() + "starts sleeping at" + Machine.timer().getTime() + "for" + waitTime);
+            ThreadedKernel.alarm.waitUntil(waitTime);
+            System.out.println(KThread.currentThread().toString() + "wakes at" + Machine.timer().getTime());
+        }
+
+        long waitTime;
+    }
 
     /**
      * Tests whether this module is working.
      */
-	protected void saveState() {
-		Lib.assertTrue(Machine.interrupt().disabled());
-		Lib.assertTrue(this == currentThread);
-	}
+    public static void selfTest() {
+	Lib.debug(dbgThread, "Enter KThread.selfTest");
+	
+	// new KThread(new PingTest(1)).setName("forked thread").fork();
+	// new PingTest(0).run();
 
-	private static class PingTest implements Runnable {
-		PingTest(int which) {
-			this.which = which;
-		}
+        KThread joinee = new KThread(new PingTest(1));
+        KThread joiner = new KThread(new Joiner(joinee));
+        joiner.fork();
+        joiner.join();
 
-		public void run() {
-			for (int i=0; i<5; i++) {
-				System.out.println("*** thread " + which + " looped "
-						+ i + " times");
-				currentThread.yield();
-			}
-		}
+        // for(int i = 0; i < 5; i++) {
+        //     System.out.println("Creating thread" + i);
+        //     new KThread(new AlarmThread(2)).setName(i+"").fork();
+        // }
+        // ThreadedKernel.alarm.waitUntil(10000000);
+    }
 
-		private int which;
-	}
-
-	public static class Joining implements Runnable {
-		Joining(KThread to) {
-			this.to = to;
-		}
-
-		public void run() {
-			System.out.println("New thread");
-			to.fork();
-			currentThread.yield();
-			to.join();
-			System.out.println("Finish");
-		}
-
-		private KThread to;
-	}
-
-	public static class AThread implements Runnable {
-		AThread(int n) {
-			waitTime = n * 100;
-		}
-
-		public void run() {
-			System.out.println(KThread.currentThread().toString() + "Sleeping at" + Machine.timer().getTime() + "for" + waitTime);
-			ThreadedKernel.alarm.waitUntil(waitTime);
-			System.out.println(KThread.currentThread().toString() + "wakes at" + Machine.timer().getTime());
-		}
-
-		long waitTime;
-	}
-
-	/**
-	 * Tests whether this module is working.
-	 */
-	public static void selfTest() {
-		Lib.debug(dbgThread, "KThread.selfTest");
-
-		// new KThread(new PingTest(1)).setName("forked thread").fork();
-		// new PingTest(0).run();
-
-		KThread join1 = new KThread(new PingTest(1));
-		KThread join2 = new KThread(new Joining(join1));
-		KThread join3 = new KThread(new Joining(join1));  //won't join
-
-		join2.fork();
-		join3.fork();
-		join2.join();
-
-		// for(int i = 0; i < 5; i++) {
-		//     System.out.println("Creating thread" + i);
-		//     new KThread(new AlarmThread(2)).setName(i+"").fork();
-		// }
-		// ThreadedKernel.alarm.waitUntil(10000000);
-	}
-
-	private static final char dbgThread = 't';
+    private static final char dbgThread = 't';
 
     /**
      * Additional state used by schedulers.
@@ -496,4 +490,5 @@ public class KThread {
     private static KThread currentThread = null;
     private static KThread toBeDestroyed = null;
     private static KThread idleThread = null;
+    private Semaphore joined;
 }

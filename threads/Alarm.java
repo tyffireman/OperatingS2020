@@ -3,6 +3,7 @@ package nachos.threads;
 import nachos.machine.*;
 
 import java.util.*;
+
 /**
  * Uses the hardware timer to provide preemption, and to allow threads to sleep
  * until a certain time.
@@ -16,7 +17,7 @@ public class Alarm {
      * alarm.
      */
     public Alarm() {
-        wSet = new ArrayList<>();
+        waitingThreadSet = new TreeSet<WaitingThread>();
 	Machine.timer().setInterruptHandler(new Runnable() {
 		public void run() { timerInterrupt(); }
 	    });
@@ -29,19 +30,21 @@ public class Alarm {
      * that should be run.
      */
     public void timerInterrupt() {
-        boolean intS = Machine.interrupt().disable();
-        Iterator<WThread> iter = wSet.iterator();
-        while (iter.hasNext()) {
-            WThread entry = iter.next();
-            if (Machine.timer().getTime() > entry.t()) {
-                entry.thread().ready();
+        boolean intStatus = Machine.interrupt().disable();
+        Iterator<WaitingThread> iter = waitingThreadSet.iterator(); 
+        while (iter.hasNext()) { 
+            WaitingThread entry = iter.next(); 
+            KThread thread = entry.thread(); 
+            long wakeTime = entry.wakeTime(); 
+            if (Machine.timer().getTime() > wakeTime) {
+                thread.ready();
                 iter.remove();
             } else {
                 break;
             }
         }
-        KThread.currentThread().yield();
-        Machine.interrupt().restore(intS);
+	KThread.currentThread().yield();
+        Machine.interrupt().restore(intStatus);
     }
 
     /**
@@ -60,46 +63,41 @@ public class Alarm {
      */
     public void waitUntil(long x) {
 	// for now, cheat just to get something working (busy waiting is bad)
-
 	long wakeTime = Machine.timer().getTime() + x;
-
-        if (wakeTime > Machine.timer().getTime()) {
-            boolean intS = Machine.interrupt().disable();
-            wSet.add(new WThread(KThread.currentThread(), wakeTime));
+	if (wakeTime > Machine.timer().getTime()) {
+            boolean intStatus = Machine.interrupt().disable();
+            waitingThreadSet.add(new WaitingThread(KThread.currentThread(), wakeTime));
             KThread.sleep();
-            Machine.interrupt().restore(intS);
+            Machine.interrupt().restore(intStatus);
         }
     }
 
-    public class WThread implements Comparable<WThread>{
+    public class WaitingThread implements Comparable<WaitingThread>{
 
-        private KThread thread;
-        private long t;
-
-
-        public WThread(KThread thread, long t) {
+        public WaitingThread(KThread thread, long wakeTime) {
             super();
             this.thread = thread;
-            this.t= t;
+            this.wakeTime = wakeTime;
         }
 
         public KThread thread() {
             return thread;
         }
 
-        public long t() {
-            return t;
+        public long wakeTime() {
+            return wakeTime;
         }
 
         @Override
-        public int compareTo(WThread w) {
-            int ans = 0;
-            if (this.t > w.t()) ans = 1;
-            if (this.t < w.t()) ans = 0;
-            return ans;
+        public int compareTo(WaitingThread w) {
+            return (this.wakeTime > w.wakeTime()?1:0) - (this.wakeTime < w.wakeTime()?1:0);
         }
+
+        private KThread thread;
+        private long wakeTime;
+
     }
 
-  //  public TreeSet<WThread> waitingThreadSet;
-    public List<WThread> wSet;
+    public TreeSet<WaitingThread> waitingThreadSet;
+
 }

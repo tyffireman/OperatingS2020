@@ -15,14 +15,14 @@ public class Communicator {
      * Allocate a new communicator.
      */
     public Communicator() {
-        conditionLock = new Lock();
-        speakQueue = new Condition2(conditionLock);
-        listenQueue = new Condition2(conditionLock);
-        speaking = new Condition2(conditionLock);
-        listening = new Condition2(conditionLock);
-        countSpeaker = 0;
-        countListener = 0;
-        nottransfer = true;
+    	conditionLock = new Lock();
+    	speakerQueue = new Condition2(conditionLock);
+    	listenerQueue = new Condition2(conditionLock);
+    	speaking = new Condition2(conditionLock);
+    	listening = new Condition2(conditionLock);
+    	numSpeaker = 0;
+    	numListener = 0;
+    	transferring = false;
     }
 
     /**
@@ -36,22 +36,22 @@ public class Communicator {
      * @param	word	the integer to transfer.
      */
     public void speak(int word) {
-        conditionLock.acquire();
-        // words.add(word);
-        if (countListener == 0) {
-            countSpeaker = countSpeaker + 1;
-            speakQueue.sleep();
-            countSpeaker = countSpeaker - 1;
-        } else {
-            listenQueue.wake();
-        }
-        while (!nottransfer) {
-            speaking.sleep();
-        }
-        this.word = word;
-        nottransfer = true;
-        listening.wake();
-        conditionLock.release();
+    	conditionLock.acquire();
+    	// words.add(word);
+    	if (numListener == 0) {
+    	    numSpeaker++;
+    	    speakerQueue.sleep();
+    	    numSpeaker--;
+    	} else {
+    	    listenerQueue.wake();
+    	}
+    	while (transferring) {
+    	    speaking.sleep();
+    	}
+    	this.word = word;
+    	transferring = true;
+    	listening.wake();
+    	conditionLock.release();
     }
 
     /**
@@ -59,39 +59,38 @@ public class Communicator {
      * the <i>word</i> that thread passed to <tt>speak()</tt>.
      *
      * @return	the integer transferred.
-     */
+     */    
     public int listen() {
-        int heard;
-        conditionLock.acquire();
-        if (countSpeaker == 0) {
-            countListener = countListener + 1;
-            listenQueue.sleep();
-            countListener = countListener - 1;
-        } else {
-            speakQueue.wake();
-        }
-        while (nottransfer) {
-            listening.sleep();
-        }
-        heard = word;
-        nottransfer = true;
-        speaking.wake();
-        conditionLock.release();
-        return heard;
+    	int heard;
+    	conditionLock.acquire();
+    	if (numSpeaker == 0) {
+    	    numListener++;
+    	    listenerQueue.sleep();
+    	    numListener--;
+    	} else {
+    	    speakerQueue.wake();
+    	}
+    	while (!transferring) {
+    	    listening.sleep();
+    	}
+    	heard = word;
+    	transferring = false;
+    	speaking.wake();
+    	conditionLock.release();
+	return heard;
     }
 
     private Lock conditionLock;
     // private int word;
-    private Condition2 speakQueue;
-    private Condition2 listenQueue;
+    private Condition2 speakerQueue;
+    private Condition2 listenerQueue;
     private Condition2 speaking;
     private Condition2 listening;
-    private int countSpeaker;
-    private int countListener;
+    private int numSpeaker, numListener;
     private int word;
-    private boolean nottransfer;
+    private boolean transferring;
 
-    /**
+     /**
      * Self Test
      */
 
@@ -154,15 +153,15 @@ public class Communicator {
         //Speaker first
         System.out.println("----- Communicator TEST1 -----");
         Communicator comm = new Communicator();
-        KThread speaker1 = new KThread(new Speaker(0,comm,314)).setName("Speaker1");
-        KThread speaker2 = new KThread(new Speaker(1,comm,271)).setName("Speaker2");
+        KThread speaker1 = new KThread(new Speaker(0,comm,123)).setName("Speaker1");
+        KThread speaker2 = new KThread(new Speaker(1,comm,456)).setName("Speaker2");
         KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
         KThread listener2 = new KThread(new Listener(3,comm)).setName("Listener2");
         speaker1.fork();
-        listener2.fork();
-        ThreadedKernel.alarm.waitUntil(1000000);
         speaker2.fork();
+        ThreadedKernel.alarm.waitUntil(1000000);
         listener1.fork();
+        listener2.fork();
         ThreadedKernel.alarm.waitUntil(10000000);
     }
 
@@ -170,26 +169,36 @@ public class Communicator {
         //Listener first
         System.out.println("----- Communicator TEST2 -----");
         Communicator comm = new Communicator();
-        KThread speaker1 = new KThread(new Speaker(0,comm,314)).setName("Speaker1");
-        KThread speaker2 = new KThread(new Speaker(1,comm,271)).setName("Speaker2");
-        KThread speaker3 = new KThread(new Speaker(2,comm,729)).setName("Speaker3");
-        KThread listener1 = new KThread(new Listener(3,comm)).setName("Listener1");
-        KThread listener2 = new KThread(new Listener(4,comm)).setName("Listener2");
-        KThread listener3 = new KThread(new Listener(5,comm)).setName("Listener3");
+        KThread speaker1 = new KThread(new Speaker(0,comm,123)).setName("Speaker1");
+        KThread speaker2 = new KThread(new Speaker(1,comm,456)).setName("Speaker2");
+        KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
+        KThread listener2 = new KThread(new Listener(3,comm)).setName("Listener2");
         listener1.fork();
         listener2.fork();
         ThreadedKernel.alarm.waitUntil(1000000);
         speaker1.fork();
-        listener3.fork();
         speaker2.fork();
-        speaker3.fork();
+        ThreadedKernel.alarm.waitUntil(10000000);
+    }
+
+    private static void test3(){
+        //Listener joins speaker
+        System.out.println("----- Communicator TEST3 -----");
+        Communicator comm = new Communicator();
+        
+        KThread listener1 = new KThread(new Listener(2,comm)).setName("Listener1");
+        KThread speaker1 = new KThread(new Speaker(0,comm,123,listener1)).setName("Speaker1");
+        KThread speaker2 = new KThread(new Speaker(1,comm,456)).setName("Speaker2");
+        speaker1.fork();
+        listener1.fork();
+        speaker2.fork();
         ThreadedKernel.alarm.waitUntil(10000000);
     }
 
     public static void selfTest(){
         test1();
         test2();
+        test3();
     }
-
 
 }

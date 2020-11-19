@@ -2,7 +2,7 @@ package nachos.threads;
 
 import nachos.machine.*;
 
-import java.util.*;
+import java.util.LinkedList;
 
 /**
  * An implementation of condition variables that disables interrupt()s for
@@ -23,7 +23,7 @@ public class Condition2 {
      *              <tt>wake()</tt>, or <tt>wakeAll()</tt>.
      */
     public Condition2(Lock conditionLock) {
-        this.conditionLock = conditionLock;
+    this.conditionLock = conditionLock;
     }
 
     /**
@@ -33,19 +33,17 @@ public class Condition2 {
      * automatically reacquire the lock before <tt>sleep()</tt> returns.
      */
     public void sleep() {
-        Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        boolean intS = Machine.interrupt().disable();
+        boolean intStatus = Machine.interrupt().disable();
         waitQueue.waitForAccess(KThread.currentThread());
 
-        conditionLock.release();
-        //System.out.println("----- hhhhh8 -----");
+    conditionLock.release();
         KThread.sleep();
-       // System.out.println("----- hhhhh9-----");
 
-        Machine.interrupt().restore(intS);
+        Machine.interrupt().restore(intStatus);
 
-        conditionLock.acquire();
+    conditionLock.acquire();
     }
 
     /**
@@ -53,7 +51,7 @@ public class Condition2 {
      * current thread must hold the associated lock.
      */
     public void wake() {
-        Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
         boolean intStatus = Machine.interrupt().disable();
 
@@ -70,9 +68,9 @@ public class Condition2 {
      * thread must hold the associated lock.
      */
     public void wakeAll() {
-        Lib.assertTrue(conditionLock.isHeldByCurrentThread());
+    Lib.assertTrue(conditionLock.isHeldByCurrentThread());
 
-        boolean intS = Machine.interrupt().disable();
+        boolean intStatus = Machine.interrupt().disable();
 
         KThread thread = waitQueue.nextThread();
         while (thread != null) {
@@ -80,16 +78,17 @@ public class Condition2 {
             thread = waitQueue.nextThread();
         }
 
-        Machine.interrupt().restore(intS);
+        Machine.interrupt().restore(intStatus);
     }
+
 
     /* Self Test */
     private static class Tester implements Runnable{
-        Tester(int which, Condition2 data, Lock lock, StringBuilder cText,
-               int numAdd, int numRead){
-
+        Tester(int which, Condition2 dataReady, Lock lock, StringBuilder cText,
+                int numAdd, int numRead){
+            
             this.lock = lock;
-            this.data = data;
+            this.dataReady = dataReady;
             this.which = which;
             this.cText = cText;
             this.numAdd = numAdd;
@@ -98,16 +97,14 @@ public class Condition2 {
         public void addToText(char content){
             lock.acquire();
             cText.append(content);
-            data.wake();
+            dataReady.wake();
             lock.release();
         }
         public char readText(){
             lock.acquire();
             while (cText.length()==0){
-                System.out.println("*** Thread "+which+" going to sleep");
-         //       System.out.println("----- hhhhh6 -----");
-                data.sleep();
-                System.out.println("----- hhhhh7 -----");
+                System.out.println("*** Thread "+which+" No text, going to sleep");
+                dataReady.sleep();
                 System.out.println("*** Thread "+which+" Awake");
             }
             char firstSymbol = cText.charAt(0);
@@ -116,44 +113,56 @@ public class Condition2 {
             return firstSymbol;
         }
         public void run(){
-            for (int i=0; i<numAdd; i++){
-                System.out.println("** Thread "+which+" ready to write "+(char)(65+i));
+            for (int i=0; i<numAdd; ++i){
+                System.out.println("*** Thread "+which+" ready to write "+(char)(65+i));
                 addToText((char)(65+i));
-                System.out.println("** Thread "+which+" wrote"+(char)(65+i));
+                System.out.println("*** Thread "+which+" has written"+(char)(65+i));
             }
-            for (int i=0; i<numRead; i++){
+            for (int i=0; i<numRead; ++i){
                 char firstSymbol = readText();
-                System.out.println("** Thread "+which+" has read "+firstSymbol);
+                System.out.println("*** Thread "+which+" has read "+firstSymbol);
             }
-        }
+        }        
         private int numAdd, numRead; //Number of chars to write and read, respectively
         private int which;
         private Lock lock;
-        private Condition2 data;
+        private Condition2 dataReady;
         StringBuilder cText;
     }
 
-    private static void test(){
+    private static void test1(){
+        System.out.println("----- Condition Variable TEST1 -----");
+        StringBuilder sharedString = new StringBuilder();
+        Lock textLock = new Lock();
+        Condition2 textReady = new Condition2(textLock);
+        new KThread(new Tester(0,textReady, textLock, sharedString, 0, 5)).fork();
+        ThreadedKernel.alarm.waitUntil(1000000);
+        new KThread(new Tester(1,textReady, textLock, sharedString, 5, 0)).fork();
+        ThreadedKernel.alarm.waitUntil(1000000);
+    }
+
+    private static void test2(){
         System.out.println("----- Condition Variable TEST2 -----");
         StringBuilder sharedString = new StringBuilder();
         Lock textLock = new Lock();
         Condition2 textReady = new Condition2(textLock);
+        new KThread(new Tester(0,textReady, textLock, sharedString, 0, 6)).fork();
+        ThreadedKernel.alarm.waitUntil(10000);
         new KThread(new Tester(1,textReady, textLock, sharedString, 2, 0)).fork();
-    //    ThreadedKernel.alarm.waitUntil(10000);
+        ThreadedKernel.alarm.waitUntil(10000);
         new KThread(new Tester(2,textReady, textLock, sharedString, 2, 0)).fork();
-     //   ThreadedKernel.alarm.waitUntil(10000);
+        ThreadedKernel.alarm.waitUntil(10000);
         new KThread(new Tester(3,textReady, textLock, sharedString, 2, 0)).fork();
         //new KThread(new Tester(2,textReady, textLock, sharedString, 4, 0)).fork();
         ThreadedKernel.alarm.waitUntil(1000000);
     }
 
     public static void selfTest(){
-       // test1();
-        test();
+        test1();
+        test2();
     }
-
 
     private Lock conditionLock;
     private ThreadQueue waitQueue =
-            ThreadedKernel.scheduler.newThreadQueue(false);
+        ThreadedKernel.scheduler.newThreadQueue(false);
 }

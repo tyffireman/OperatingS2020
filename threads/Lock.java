@@ -1,7 +1,6 @@
 package nachos.threads;
 
 import nachos.machine.*;
-
 /**
  * A <tt>Lock</tt> is a synchronization primitive that has two states,
  * <i>busy</i> and <i>free</i>. There are only two operations allowed on a
@@ -72,9 +71,6 @@ public class Lock {
     public boolean isHeldByCurrentThread() {
 	return (lockHolder == KThread.currentThread());
     }
-
-
-
 
     private KThread lockHolder = null;
     private ThreadQueue waitQueue =

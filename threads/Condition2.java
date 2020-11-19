@@ -162,6 +162,7 @@ public class Condition2 {
         test2();
     }
 
+
     private Lock conditionLock;
     private ThreadQueue waitQueue =
         ThreadedKernel.scheduler.newThreadQueue(false);

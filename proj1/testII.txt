@@ -1,0 +1,43 @@
+----- Condition Variable TEST1 -----
+*** Thread 0 No text, going to sleep
+*** Thread 1 ready to write A
+*** Thread 1 has writtenA
+*** Thread 1 ready to write B
+*** Thread 1 has writtenB
+*** Thread 1 ready to write C
+*** Thread 1 has writtenC
+*** Thread 1 ready to write D
+*** Thread 1 has writtenD
+*** Thread 1 ready to write E
+*** Thread 1 has writtenE
+*** Thread 0 Awake
+*** Thread 0 has read A
+*** Thread 0 has read B
+*** Thread 0 has read C
+*** Thread 0 has read D
+*** Thread 0 has read E
+----- Condition Variable TEST2 -----
+*** Thread 0 No text, going to sleep
+*** Thread 1 ready to write A
+*** Thread 1 has writtenA
+*** Thread 1 ready to write B
+*** Thread 1 has writtenB
+*** Thread 0 Awake
+*** Thread 0 has read A
+*** Thread 0 has read B
+*** Thread 0 No text, going to sleep
+*** Thread 2 ready to write A
+*** Thread 2 has writtenA
+*** Thread 2 ready to write B
+*** Thread 2 has writtenB
+*** Thread 0 Awake
+*** Thread 0 has read A
+*** Thread 0 has read B
+*** Thread 0 No text, going to sleep
+*** Thread 3 ready to write A
+*** Thread 3 has writtenA
+*** Thread 3 ready to write B
+*** Thread 3 has writtenB
+*** Thread 0 Awake
+*** Thread 0 has read A
+*** Thread 0 has read B

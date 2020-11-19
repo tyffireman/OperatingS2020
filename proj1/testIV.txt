@@ -1,0 +1,29 @@
+----- Communicator TEST1 -----
+*** Thread 0 ready to say 123
+*** Thread 1 ready to say 456
+*** Thread 2 running
+*** Thread 2 ready to listen
+*** Thread 3 running
+*** Thread 3 ready to listen
+*** Thread 0 has said 123
+*** Thread 2 has heard 123
+*** Thread 1 has said 456
+*** Thread 3 has heard 456
+----- Communicator TEST2 -----
+*** Thread 2 running
+*** Thread 2 ready to listen
+*** Thread 3 running
+*** Thread 3 ready to listen
+*** Thread 0 ready to say 123
+*** Thread 0 has said 123
+*** Thread 1 ready to say 456
+*** Thread 2 has heard 123
+*** Thread 1 has said 456
+*** Thread 3 has heard 456
+----- Communicator TEST3 -----
+*** Thread 2 running
+*** Thread 2 ready to listen
+*** Thread 1 ready to say 456
+*** Thread 1 has said 456
+*** Thread 2 has heard 456
+*** Thread 0 ready to say 123

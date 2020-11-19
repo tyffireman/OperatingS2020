@@ -274,4 +274,3 @@ public class Boat
     private static Lock refreshLock=new Lock();
 
 }
-
